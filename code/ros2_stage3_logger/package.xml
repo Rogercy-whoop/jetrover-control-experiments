@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>stage3_logger</name>
+  <version>0.0.1</version>
+  <description>Step-response, temperature and heading-control experiments on a Hiwonder JetRover</description>
+  <maintainer email="you@example.com">ubuntu</maintainer>
+  <license>MIT</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>rclcpp</depend>
+  <depend>sensor_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>ros_robot_controller_msgs</depend>
+  <export><build_type>ament_cmake</build_type></export>
+</package>
