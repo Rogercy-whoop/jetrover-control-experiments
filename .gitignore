@@ -1,0 +1,9 @@
+# OS / editor junk
+.DS_Store
+Thumbs.db
+*.swp
+
+# ROS 2 build output
+build/
+install/
+log/
