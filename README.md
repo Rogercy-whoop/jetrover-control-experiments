@@ -22,15 +22,15 @@ So I bought a robot with my own savings: a Hiwonder JetRover with a Mecanum-whee
 | 1–2. Setup and mapping | What is actually inside this robot, and how do I talk to it? | A confirmed hardware map, and one of my own assumptions corrected. |
 | 3. Step response vs load | Can I predict how the arm's built-in controller reacts to a heavier load? | **Overshoot grew with load (6.0° → 8.4° → 10.6°), exactly as I predicted from gravity.** |
 | 4a. Heating under load | Can heat give me an independent check on the load the servo is carrying? | 400 g heated the shoulder about 2.7× faster than no load. |
-| 4b. Maximum acceleration | Does the base joint reach the acceleration I calculated by hand? | **No. It reached well under half, and the real limit was a speed cap in the firmware.** |
-| 5. Heading under a friction disturbance | Can my own controller keep the whole robot straight when one side slips? | **Closed loop cut RMS heading error to about a quarter of the open-loop run on the same surface.** Then I found where it stops working. |
+| 4b. Maximum acceleration | Does the base joint reach the acceleration I calculated by hand? | **No. It reached about half of it or less, and the arm hit a speed ceiling (most likely in the firmware) that no command could push past.** |
+| 5. Heading under a friction disturbance | Can my own controller keep the whole robot straight when one side slips? | **Closed loop cut RMS heading error to about a quarter of the no-correction run on the same surface (one run each).** Then I found where it stops working. |
 
 ## How I worked
 
 - **Prediction before measurement.** For every main experiment I wrote down what I expected and why before I ran it. When the result disagreed, the disagreement was the interesting part.
-- **Raw data kept.** Every plot comes from CSV logs in [`data/`](data/). Nothing is hand-copied.
+- **Raw data kept.** Every Part B plot comes from the CSV logs in [`data/`](data/), and every number in the result tables was recomputed from those files (the method is in [`data/README.md`](data/README.md)). Nothing is hand-copied. The Part A figures are screenshots of the Arduino Serial Plotter.
 - **Honest limits.** Each section ends with what the experiment cannot tell me.
-- **Help I used.** I learned much of the theory with AI assistants (ChatGPT and Claude) as tutors. They explained concepts I had not met yet, helped me write the ROS 2 logging nodes and helped turn my CSV logs into plots. The hardware work, the choice of each experiment, the predictions, every measurement and the conclusions are mine. **[Roger: edit this so it matches exactly how you worked.]**
+- **Help I used.** I used AI assistants (ChatGPT and Claude) along the way: as a tutor for concepts I had not met yet, and to help write and debug parts of the code, including some of the control and logging code, and the scripts that turn the CSV logs into plots. I ran and tested everything on the hardware myself. Choosing each experiment, the hardware work, the predictions, every measurement and the conclusions are mine.
 
 ---
 
@@ -93,14 +93,14 @@ Before measuring anything I needed to know what I was measuring. I queried every
 
 | ID | Joint | Servo | Range (units) |
 |---|---|---|---|
-| 1 | Base rotation | HTS-20H (20 kg·cm) | 0–1000 |
-| 2 | Shoulder | HTD-35H (35 kg·cm) | 0–1000 |
-| 3 | Elbow | HTD-35H (35 kg·cm) | 0–1000 |
-| 4 | Wrist pitch | HTD-35H (35 kg·cm) | 0–1000 |
-| 5 | Wrist roll | HTS-21H | 0–1000 |
-| 10 | Gripper | HX-12H | **0–700** |
+| 1 | Base rotation | HTS-20H (20 kg·cm, 58 g) | 0–1000 |
+| 2 | Shoulder | HTD-35H (35 kg·cm, 64 g) | 0–1000 |
+| 3 | Elbow | HTD-35H (35 kg·cm, 64 g) | 0–1000 |
+| 4 | Wrist pitch | HTD-35H (35 kg·cm, 64 g) | 0–1000 |
+| 5 | Wrist roll | HX-12H (12 kg·cm, 36.3 g) | 0–1000 |
+| 10 | Gripper | HTS-21H (21 kg·cm, 63 g) | **0–700** |
 
-One servo unit is 0.24°. Two things mattered later. The gripper has a different range, so sending it 1000 would be a mistake. And the wrist pitch is a 35 kg·cm servo, not the 20 kg·cm I had assumed from my notes. My later torque calculations use the corrected table.
+Torque is the manufacturer's stall torque at 11.1 V, and the masses are from the same spec sheet. One servo unit is 0.24°. Two things mattered later. The gripper has a different range, so sending it 1000 would be a mistake. And the wrist pitch is a 35 kg·cm servo, not the 20 kg·cm I had assumed from my notes. My later torque calculations use the corrected table.
 
 ![Reading a servo's state](figures/s2_servo_get_state.png)
 
@@ -129,8 +129,10 @@ For scale, the load's gravity torque at 20.5 cm is at most about 0.40 N·m for 2
 | Load | Rise time (to −54°) | Overshoot past −60° | Final angle (steady-state error) |
 |---|---|---|---|
 | 0 g | 0.40 s | **6.0°** (to −66.0°) | −63.1° (−3.1°) |
-| 200 g | 0.42 s | **8.4°** (to −68.4°) | −64.4° (−4.4°) |
+| 200 g | 0.42 s | **8.4°** (to −68.4°) | −64.3° (−4.3°) |
 | 400 g | 0.50 s | **10.6°** (to −70.6°) | −65.8° (−5.8°) |
+
+Rise time is the first 20 ms sample past −54°, counted from the moment the step was commanded (the servo itself starts moving about 40 ms later). Overshoot is the largest excursion past −60°. Final angle is the last sample of the 6 s log.
 
 **What I concluded.** All three trends are monotonic and all three have a physical reason:
 1. **Rise time grows with load.** More inertia means slower acceleration.
@@ -141,7 +143,7 @@ This was my favourite moment of the project: a behaviour I had first seen as a n
 
 > 🎥 **[Add video link]** 0 g vs 400 g step, ideally in slow motion.
 
-**Limits.** I could not see the servo's internal gains, so I can explain the trends but not model them exactly. **[Roger: say how many runs per load you did.]**
+**Limits.** I could not see the servo's internal gains, so I can explain the trends but not model them exactly. The data folder holds one logged run per load, so these are single runs and I have no spread to quote. The rise-time difference between 0 g and 200 g is a single 20 ms sample, so only the 400 g step is clearly slower. The overshoot and steady-state trends are clearer, but repeating each load several times is on my list. **[Roger: confirm how many runs per load you actually did.]**
 
 ---
 
@@ -173,24 +175,28 @@ This was my favourite moment of the project: a behaviour I had first seen as a n
 - Base servo stall torque: 20 kg·cm = 1.96 N·m. I used 70% of that, 1.37 N·m, as the usable figure.
 - **Prediction: α_max = τ / I ≈ 1.37 / 0.0235 ≈ 58 rad/s².** Using the full stall torque instead gives about 83 rad/s².
 
-**Method.** The base rotates through a fixed angle. I kept shortening the commanded move time, from 0.3 s down to 0.05 s, which demands a steeper and steeper acceleration. The idea was that once I demand more than α_max, the real motion can no longer keep up, and the point where it falls behind tells me the true limit.
+**Method.** I commanded the base to turn from its starting position (servo position about 502) to position 1250, which is +180°. That target is beyond the end of the servo's 0–1000 range, so every run ends when the arm reaches the end of its range, after about 120° of travel. I kept shortening the commanded move time, from 0.5 s down to 0.05 s (five runs: 0.5, 0.3, 0.2, 0.15 and 0.05 s), which demands a steeper and steeper acceleration. The idea was that once I demand more than α_max, the real motion can no longer keep up, and the point where it falls behind tells me the true limit.
 
 **Result.**
 
 ![Saturation: every commanded duration gives the same motion](figures/s4b_saturation_curves.png)
 
-The curves for 0.3, 0.2, 0.15 and 0.05 s lie almost exactly on top of each other. I demanded **36 times more acceleration** and the arm moved identically every time, taking about 0.6 s. The angular velocity plot shows why: every run climbs to the **same ceiling of about 220 °/s (≈ 3.9 rad/s)**, holds it, then slows down.
+The curves for all five commanded times lie almost exactly on top of each other. From 0.3 s to 0.05 s the commanded move is six times faster, which is **36 times the acceleration** if the servo plans a constant-acceleration move (its real profile is internal to the servo, so treat 36× as the size of my demand, not a measurement). The arm moved identically every time, taking about 0.6 s for about 120°. The angular velocity plot shows why: every run climbs to the **same ceiling, about 205–210 °/s on average along the plateau (≈ 3.6 rad/s; single samples reach 220–230 °/s)**, holds it for about 0.4 s, then stops when it reaches the end of the servo's range.
 
-The measured acceleration is **roughly 20–30 rad/s²**, depending on the method. Peak velocity divided by acceleration time gives about 20; a noisy second-difference of the angle data gives 21–31. **Either way it is well under half of my prediction.**
+The measured acceleration is **roughly 20–30 rad/s²**, depending on the method. The plateau speed (≈ 3.6 rad/s) divided by the 0.12–0.18 s the arm takes to reach it gives about 20–30, and a noisy second-difference of the angle data gave 21–31. **Against my prediction of 58 rad/s² that is about half, or somewhat less.** At the low end it is a third of the prediction and at the high end just over half, so I only claim "about half or less".
 
-**What I concluded.** My arithmetic was right, but my model of the motor was wrong in three ways:
-1. **A speed cap in the servo firmware is the main limit.** Five runs hitting the identical ceiling is the clearest evidence. However hard I ask, the firmware will not let the servo go faster than about 220 °/s.
-2. **Stall torque is not the torque you get while moving.** Stall torque is measured with the motor held still. As it speeds up, the available torque falls.
+**What I concluded.** My arithmetic was right (I rechecked every row of the worksheet), but a model built from spec-sheet numbers did not describe how the servo actually moved. In order of how strongly the data supports each cause:
+1. **A speed ceiling is the main limit.** Five runs asking for very different accelerations all hit the same speed, about 3.6 rad/s. That is roughly two-thirds of the spec sheet's no-load speed for this servo (0.18 s per 60°, about 5.8 rad/s). Even my slowest command (about 120° in 0.5 s) asked for more than the ceiling, so I never saw the arm following a command it could easily keep up with. The most likely source is a speed limit in the servo firmware, but I have not ruled out the motor's loaded speed (a motor slows down as torque rises) or the supply voltage. A run where the ceiling moves, with a different load or voltage, would tell these apart.
+2. **Stall torque is not the torque you get while moving.** Stall torque is measured with the motor held still. As it speeds up, the available torque falls. This probably explains part of the gap but I cannot size it from my data.
 3. **Friction and gearbox losses** take a further share.
 
 The lesson I keep coming back to: **a spec-sheet number describes one specific situation, and it is easy to use it in a situation it does not describe.** It is the same lesson I met on the wall-climbing robots I tested at TRI. A maximum rating is something a machine can *reach*, not something it can be held at, and designing as if it could be held there is exactly where problems start.
 
-**Limits.** In my worksheet the wrist-roll and gripper servo names are swapped compared with the hardware table in Stage 2. **[Roger: check whether their masses were swapped too, and correct the total if so.]** The 0.5 s run started from a different position and never reached the end stop, so it is shown but kept out of the comparison. My acceleration figure is the weakest number in this repo. The servo reports position at about 50 Hz, and in the velocity plot most of the rise happens within roughly 0.1 s, so the true peak acceleration could be higher than 20. Re-deriving it properly from the raw CSV is on my list. The main conclusion does not depend on it: whatever the exact figure, the firmware speed cap is the limit, not my inertia estimate.
+**Limits.**
+- **The worksheet.** The servo masses and the 200 g arm structure come from the manufacturer's spec sheet. The gripper mass (about 0.12 kg including its structure) and the centre-of-mass distances are my estimates, since I did not weigh or dismantle the parts. Cables, fasteners and the camera on the wrist are not in the worksheet. Extra mass would raise the inertia and lower the predicted acceleration a little, so my prediction is probably slightly high. The wrist-roll (HX-12H, 36.3 g) and gripper (HTS-21H) labels in the worksheet match the spec sheet; it was the first draft of my Stage 2 table that had them the wrong way round, and that is now fixed.
+- **The 0.5 s run.** Its log starts 0.8 s late and its angle reference is about 121° off from the others, so I aligned every run by displacement from its own start in the plot. The arm itself went from position 503 to about 1000 like the other four and reaches the same speed ceiling, so it counts as a fifth run.
+- **No unsaturated reference run.** Every command I sent was faster than the ceiling, so I measured the ceiling and the ramp up to it, not a clean torque-limited acceleration.
+- **The acceleration figure is the weakest number in this repo.** The servo reports position at about 50 Hz, so the ramp has only about six samples, and the true peak acceleration could be higher than my range. Re-deriving it from the raw CSV with a proper fit is on my list. The main conclusion does not depend on it: whatever the exact figure, the arm ran into a speed ceiling, not into my inertia estimate.
 
 > 🎥 **[Add video link]** 0.3 s and 0.05 s commands side by side, looking identical.
 
@@ -204,7 +210,7 @@ The lesson I keep coming back to: **a spec-sheet number describes one specific s
 
 > 📷 **[Add photo]** Turning the robot by hand while watching the heading in the terminal.
 
-So I built what the sensing allowed: **an outer heading loop around the chassis's own speed control.** My node ([`heading_pid.cpp`](code/ros2_stage3_logger/src/heading_pid.cpp)) locks the starting heading as its target, drives forward, and corrects with a turning command. It uses Kp = 1.5, Kd = 0.2 and Ki = 0, running at 50 Hz. Setting Kp to 0 gives the open-loop baseline with nothing correcting it.
+So I built what the sensing allowed: **an outer heading loop around the chassis's own speed control.** My node ([`heading_pid.cpp`](code/ros2_stage3_logger/src/heading_pid.cpp)) locks the starting heading as its target, drives forward, and corrects with a turning command. It uses Kp = 1.5, Kd = 0.2 and Ki = 0, running at 50 Hz. Setting Kp to 0 gives the baseline with no heading correction. I call those runs "open loop", but strictly the derivative gain stayed at 0.2. Refitting the logged commands gives Kp = 0.00, Kd = 0.20 for the two baseline runs and Kp = 1.50, Kd = 0.20 for the closed-loop run, so the controller ran exactly as described. The derivative term reacts to how fast the heading is changing, not to how far it has drifted, so it cannot hold a heading, but it is not zero either. The baselines are "no correction", not strictly "no feedback".
 
 **My prediction.** On a normal floor the robot should drive almost straight on its own. With a low-friction strip under one side, that side slips, the robot does not know, and it drifts. My controller should pull the heading back.
 
@@ -216,13 +222,15 @@ So I built what the sensing allowed: **an outer heading loop around the chassis'
 
 ![Heading error vs time](figures/s5_heading_error.png)
 
-| Condition | Final heading error | Max error | RMS error |
+| Condition | Final heading error (mean of last 0.5 s) | Max error | RMS error |
 |---|---|---|---|
-| Open loop, normal floor | −0.82° | 1.09° | 0.78° |
-| Open loop, paper under one side | +0.61° | 0.71° | 0.37° |
+| Open loop, normal floor | −0.85° | 1.09° | 0.78° |
+| Open loop, paper under one side | +0.59° | 0.71° | 0.37° |
 | **Closed loop, paper under one side** | **+0.04°** | **0.28°** | **0.10°** |
 
 With the same disturbance, closed loop cut the RMS heading error from 0.37° to 0.10°, **about a quarter**. Against the open-loop floor run it is about an eighth, and the final error is almost zero. The green line stays pinned near zero while the other two wander away.
+
+One caution about these numbers. The two baseline runs differ by more than a factor of two (RMS 0.78° on the bare floor, 0.37° with paper), and in the wrong direction for a friction disturbance. So run-to-run variation is already as large as the effect I added, and with one run per condition I cannot separate the controller's effect from that variation. The closed-loop run is four times better than the better baseline, which is encouraging, but it needs several repeats of each condition before I would call it a result.
 
 **Then the part that did not fit.** I also measured how far sideways each run ended up, with a tape measure: about 2 cm (open loop, floor), 1.1 cm (open loop, paper) and 0.3–0.5 cm (closed loop, paper). The paper run should have drifted *more* than the bare floor, but it drifted less. The reason is that the disturbance I introduced was about the same size as the floor itself: dust, grit, the seams between floorboards, any slight slope, and the small jolt at start-up all move the robot by a centimetre or two. My signal was buried in the noise of my own bedroom floor. So I trust the heading data, which was logged continuously, and not the tape-measure numbers.
 
@@ -234,17 +242,18 @@ With the same disturbance, closed loop cut the RMS heading error from 0.37° to 
 
 - **Prediction beats hindsight.** The overshoot result in Stage 3 was only convincing because I wrote the gravity argument down before the data existed.
 - **A spec number describes a situation, not a machine.** Stall torque describes a motor held still. Rated power describes a motor turning at rated speed. Most of my wrong predictions came from using a number outside the situation it describes.
-- **The real limit is often hidden in firmware.** The base joint was not limited by physics but by a speed cap I could not see until five curves hit the same ceiling.
-- **Feedback only fixes what it can measure.** My heading loop worked well on heading and was blind to sideways slide.
+- **The real limit may be hidden where you cannot see it.** The base joint was not limited by my inertia estimate but by a speed ceiling, most likely in the firmware, that I only noticed when five curves hit the same value.
+- **Feedback only fixes what it can measure.** My heading loop reduced heading error in my runs and was blind to sideways slide.
 - **A test is only as good as its signal-to-noise ratio.** My friction disturbance was about the size of the floor's own noise, so the tape-measure result could not tell the conditions apart.
 
 ## What's next
 
 1. **Make the disturbance bigger than the noise.** Replace the paper with a much slicker plastic sheet so the drift reaches around 10 cm, well above the floor's noise.
 2. **Close the position loop with a camera.** Use visual feedback, for example the robot's line-following or marker detection, to control sideways position as well as heading.
-3. **Re-derive the base acceleration** from the raw angle data with a proper fit, and repeat each saturation run several times.
+3. **Re-derive the base acceleration** from the raw angle data with a proper fit, and repeat each saturation run several times. Add slower commands (1 s, 2 s) that the arm can follow, and a run with a different load or supply voltage, to see whether the ceiling moves.
 4. **Check the heat against torque.** Compare the 2.7 heating ratio with the squared ratio of my calculated shoulder torques.
 5. **Repeat Stage 3 at more loads** to see whether overshoot grows linearly with load torque.
+6. **Repeat the Stage 5 runs** at least five times per condition, and rerun the baseline with Kd = 0 as well as Kp = 0.
 
 ## Repository map
 
@@ -254,7 +263,7 @@ jetrover-control-experiments/
 ├── figures/                   ← every figure used above
 ├── code/
 │   ├── esp32/                 ← PID on a simulated plant, PWM test
-│   └── ros2_stage3_logger/    ← ROS 2 package: step_logger, temp_logger, heading_pid
+│   └── ros2_stage3_logger/    ← ROS 2 package `stage3_logger`: step_logger, temp_logger, heading_pid
 ├── data/                      ← raw CSV logs (see data/README.md)
 └── media/                     ← photo and video links (see media/README.md)
 ```
