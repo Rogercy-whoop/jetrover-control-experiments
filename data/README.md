@@ -13,7 +13,7 @@ The Part A (ESP32) figures are screenshots of the Arduino Serial Plotter, so the
 | `stage4/temp_0g.csv`, `temp_400g.csv` | Stage 4a: shoulder temperature every 10 s for 180 s | `figures/s4_heating_under_load.png` | `t_sec, temperature_C` |
 | `stage4b/inertia_dur050.csv`, `inertia_dur030.csv`, `inertia_dur020.csv`, `inertia_dur015.csv`, `inertia_dur005.csv` | Stage 4b: base (ID 1) moved with a commanded duration of 0.5, 0.3, 0.2, 0.15 and 0.05 s | `figures/s4b_saturation_curves.png` | same as Stage 3 |
 | `stage5/open_normal.csv`, `open_friction.csv`, `closed_friction.csv` | Stage 5: 10 s straight runs at 0.1 m/s. Baseline (Kp = 0) on the normal floor, baseline with paper under one side, and closed loop (Kp = 1.5) with paper | `figures/s5_heading_error.png` | `t_sec, target_yaw, actual_yaw, error_deg, omega_cmd` |
-| `stage5/heading_test.csv` | Stage 5: a separate 3 s run of the controller (Kp = 1.5, Kd = 0.2) used to check that it responds to a heading error. Not used in any table or figure. | none | same as the other Stage 5 files |
+| `stage5/heading_test.csv` | Stage 5: the 3 s wheels-off-the-ground test of the controller (Kp = 1.5, Kd = 0.2). The heading error grows to about 5.2° and the commanded turn rate rises with it (0.136 rad/s = 1.5 × 5.19°). Not used in any table or figure. | none | same as the other Stage 5 files |
 
 Notes on specific files:
 

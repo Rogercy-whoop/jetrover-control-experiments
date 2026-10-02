@@ -4,7 +4,9 @@
 
 Yu Chen (Roger) · Grade 12 · Suzhou, China
 
-> 📷 **[Add photo]** The JetRover on the floor of my room, arm extended. This is the first thing a reader should see.
+<p align="center">
+  <img src="media/photos/robot_overview.jpg" alt="The JetRover on the floor with its arm raised and gripper open" width="380">
+</p>
 
 ---
 
@@ -30,7 +32,7 @@ So I bought a robot with my own savings: a Hiwonder JetRover with a Mecanum-whee
 - **Prediction before measurement.** For every main experiment I wrote down what I expected and why before I ran it. When the result disagreed, the disagreement was the interesting part.
 - **Raw data kept.** Every Part B plot comes from the CSV logs in [`data/`](data/), and every number in the result tables was recomputed from those files (the method is in [`data/README.md`](data/README.md)). Nothing is hand-copied. The Part A figures are screenshots of the Arduino Serial Plotter.
 - **Honest limits.** Each section ends with what the experiment cannot tell me.
-- **Help I used.** I used AI assistants (ChatGPT and Claude) along the way: as a tutor for concepts I had not met yet, and to help write and debug parts of the code, including some of the control and logging code, and the scripts that turn the CSV logs into plots. I ran and tested everything on the hardware myself. Choosing each experiment, the hardware work, the predictions, every measurement and the conclusions are mine.
+- **Help I used.** I used AI assistants (ChatGPT and Claude) along the way: as a tutor for concepts I had not met yet, and to help write and debug parts of the code, including some of the control and logging code. I ran and tested everything on the hardware myself. Choosing each experiment, the hardware work, the predictions, every measurement and the conclusions are mine.
 
 ---
 
@@ -102,6 +104,14 @@ Before measuring anything I needed to know what I was measuring. I queried every
 
 Torque is the manufacturer's stall torque at 11.1 V, and the masses are from the same spec sheet. One servo unit is 0.24°. Two things mattered later. The gripper has a different range, so sending it 1000 would be a mistake. And the wrist pitch is a 35 kg·cm servo, not the 20 kg·cm I had assumed from my notes. My later torque calculations use the corrected table.
 
+The red notes in this figure are mine. They mark which servo drives which joint (from left to right: gripper motor, wrist roll, wrist pitch, elbow, shoulder, and the base servo inside the base), on top of the manufacturer's product diagram and spec table. The product images and specifications belong to Hiwonder.
+
+![Which servo drives which joint, with my annotations](figures/worksheet_servo_map.jpg)
+
+The label on the servo at the shoulder confirms the model and its rating:
+
+<img src="media/photos/stage2_servo_label.jpg" alt="Label on a HTD-35H 35 kg·cm bus servo at the base of the arm" width="520">
+
 ![Reading a servo's state](figures/s2_servo_get_state.png)
 
 ---
@@ -119,7 +129,11 @@ Torque is the manufacturer's stall torque at 11.1 V, and the masses are from the
 
 For scale, the load's gravity torque at 20.5 cm is at most about 0.40 N·m for 200 g and 0.80 N·m for 400 g. That is well inside the servo's rating, so any change in behaviour is about control, not strength.
 
-> 📷 **[Add photo]** The load fixed to the arm, with the 20.5 cm distance visible.
+<img src="media/photos/stage3_measuring_from_shoulder.jpg" alt="Measuring along the arm from the shoulder axis with a tape measure" width="520">
+
+*Measuring along the arm from the shoulder axis with a tape measure.*
+
+> 📷 **[Add photo]** The 200 g / 400 g load fixed to the arm.
 
 **Results.**
 
@@ -143,7 +157,7 @@ This was my favourite moment of the project: a behaviour I had first seen as a n
 
 > 🎥 **[Add video link]** 0 g vs 400 g step, ideally in slow motion.
 
-**Limits.** I could not see the servo's internal gains, so I can explain the trends but not model them exactly. The data folder holds one logged run per load, so these are single runs and I have no spread to quote. The rise-time difference between 0 g and 200 g is a single 20 ms sample, so only the 400 g step is clearly slower. The overshoot and steady-state trends are clearer, but repeating each load several times is on my list. **[Roger: confirm how many runs per load you actually did.]**
+**Limits.** I could not see the servo's internal gains, so I can explain the trends but not model them exactly. I ran each load about three times, but the data folder holds one logged run per load (the one plotted here), so the numbers are single-run values and I have no spread to quote. The rise-time difference between 0 g and 200 g is a single 20 ms sample, so only the 400 g step is clearly slower. The overshoot and steady-state trends are clearer. Adding every repeat to the data folder is on my list.
 
 ---
 
@@ -170,6 +184,19 @@ This was my favourite moment of the project: a behaviour I had first seen as a n
 **My prediction, calculated by hand.** With the arm stretched out horizontally, rotating about the vertical base axis (ID 1), I modelled every part. Compact parts (motors, gripper) were treated as point masses, I = m·d². Long links (upper arm, forearm) were treated as rods using the parallel-axis theorem, I = (1/12)·m·L² + m·d².
 
 ![My moment of inertia worksheet](figures/s4b_inertia_worksheet.jpg)
+
+<details>
+<summary>Earlier working notes behind the worksheet (link lengths, masses and distances)</summary>
+
+The parameter checklist I worked through first. The ticks mark the items I had settled, and the handwritten lengths (168, 55, 130 and 130 mm, 428 mm in total) are the link lengths I used.
+
+![Parameter checklist with link lengths](figures/worksheet_link_lengths.jpg)
+
+A first draft of each part's mass and its distance from the joint it loads. The question marks are masses I did not know yet. The final worksheet above measures every distance from the base axis instead.
+
+![Early table of masses and distances](figures/worksheet_masses_distances.jpg)
+
+</details>
 
 - Total: **I ≈ 0.0235 kg·m²**
 - Base servo stall torque: 20 kg·cm = 1.96 N·m. I used 70% of that, 1.37 N·m, as the usable figure.
@@ -214,7 +241,19 @@ So I built what the sensing allowed: **an outer heading loop around the chassis'
 
 **My prediction.** On a normal floor the robot should drive almost straight on its own. With a low-friction strip under one side, that side slips, the robot does not know, and it drifts. My controller should pull the heading back.
 
-**Method.** Forward at 0.1 m/s for 10 s (about 1 m), three conditions: open loop on normal floor, open loop with paper under one side, and closed loop with paper under one side. I first tested the controller with the wheels off the ground.
+**Method.** Forward at 0.1 m/s for 10 s (about 1 m), three conditions: open loop on normal floor, open loop with paper under one side, and closed loop with paper under one side. I first tested the controller with the wheels off the ground. The log of that test ([`data/stage5/heading_test.csv`](data/stage5/heading_test.csv)) shows the commanded turn rate following 1.5 times the heading error, as it should.
+
+<img src="media/photos/stage5_paper_strip_setup.jpg" alt="The right-hand wheels on a strip of paper, with small metal weights on the paper" width="520">
+
+*The right-hand wheels on the paper strip, with small metal weights on the paper.*
+
+<img src="media/photos/stage5_track_overview.jpg" alt="The paper strip seen from the side, with black tape marks along it" width="520">
+
+*The strip seen from the side, with black tape marks along it.*
+
+<img src="media/photos/stage5_tape_measure_drift.jpg" alt="Measuring sideways displacement with a tape measure at the edge of a wheel" width="360">
+
+*Measuring sideways displacement with a tape measure.*
 
 > 🎥 **[Add video link]** Wheels-off-the-ground test, then the three straight-line runs.
 
@@ -260,12 +299,12 @@ One caution about these numbers. The two baseline runs differ by more than a fac
 ```
 jetrover-control-experiments/
 ├── README.md                  ← this file
-├── figures/                   ← every figure used above
+├── figures/                   ← every figure used above, including the worksheet scans
 ├── code/
 │   ├── esp32/                 ← PID on a simulated plant, PWM test
 │   └── ros2_stage3_logger/    ← ROS 2 package `stage3_logger`: step_logger, temp_logger, heading_pid
 ├── data/                      ← raw CSV logs (see data/README.md)
-└── media/                     ← photo and video links (see media/README.md)
+└── media/                     ← photos (media/photos/) and video links (see media/README.md)
 ```
 
 **Platform:** Hiwonder JetRover (Mecanum base, six-axis bus-servo arm), ROS 2 · ESP32 Dev Module (Arduino IDE 2.3.10) · sigrok FX2 logic analyzer with PulseView.

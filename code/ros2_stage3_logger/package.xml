@@ -3,7 +3,7 @@
   <name>stage3_logger</name>
   <version>0.0.1</version>
   <description>Step-response, temperature and heading-control experiments on a Hiwonder JetRover</description>
-  <maintainer email="you@example.com">ubuntu</maintainer>
+  <maintainer email="yuroger2027@gmail.com">Yu Chen</maintainer>
   <license>MIT</license>
   <buildtool_depend>ament_cmake</buildtool_depend>
   <depend>rclcpp</depend>
