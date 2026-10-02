@@ -77,7 +77,9 @@ A PID output is useless until it becomes something a motor can feel. On a microc
 
 This completed the chain I wanted to understand: **sensor → error → PID → PWM → motor.**
 
-> 📷 **[Add photo]** The ESP32 wired to the logic analyzer.
+<img src="media/photos/a3_esp32_and_logic_analyzer.jpg" alt="The ESP32 development board and the logic analyzer, each on its own USB cable" width="420">
+
+*The ESP32 (left) and the logic analyzer (right).*
 
 ---
 
@@ -124,7 +126,7 @@ The label on the servo at the shoulder confirms the model and its rating:
 
 **Method.**
 - Shoulder servo (ID 2), a fixed step of −60° (−250 servo units), commanded move time 0.3 s.
-- Loads of 0 g, 200 g and 400 g, fixed about 20.5 cm from the shoulder axis.
+- Loads of 0 g, 200 g and 400 g, bound to the wrist section of the arm with black tape, about 20.5 cm from the shoulder axis.
 - My own ROS 2 node ([`step_logger.cpp`](code/ros2_stage3_logger/src/step_logger.cpp)) fires the step and logs target and actual angle at 50 Hz for 6 s.
 
 For scale, the load's gravity torque at 20.5 cm is at most about 0.40 N·m for 200 g and 0.80 N·m for 400 g. That is well inside the servo's rating, so any change in behaviour is about control, not strength.
@@ -133,7 +135,13 @@ For scale, the load's gravity torque at 20.5 cm is at most about 0.40 N·m for 2
 
 *Measuring along the arm from the shoulder axis with a tape measure.*
 
-> 📷 **[Add photo]** The 200 g / 400 g load fixed to the arm.
+<img src="media/photos/stage3_load_taped_to_wrist.jpg" alt="The arm stretched out with the test load bound to the wrist section with black tape" width="520">
+
+*The test load bound to the wrist section of the arm with black tape.*
+
+<img src="media/photos/stage3_load_closeup.jpg" alt="Close-up of the black-taped load next to the camera at the wrist" width="320">
+
+*A closer look at the taped load.*
 
 **Results.**
 
@@ -235,7 +243,9 @@ The lesson I keep coming back to: **a spec-sheet number describes one specific s
 
 **What I found first.** The chassis does not expose raw wheel-encoder counts, only the speeds it has been told to produce. So a per-wheel closed loop was impossible from my level, and from my side the wheels are effectively open-loop. What the robot *does* publish is `/odom`, a pose estimate from an EKF that fuses wheel odometry with the onboard IMU. I tested that it was real by turning the robot by hand and watching both the odometry and the IMU heading follow the actual rotation.
 
-> 📷 **[Add photo]** Turning the robot by hand while watching the heading in the terminal.
+<img src="media/photos/stage5_turning_by_hand.jpg" alt="Turning the robot by hand, seen from above" width="300">
+
+*Turning the robot by hand (a frame from a video) while watching the heading in the terminal.*
 
 So I built what the sensing allowed: **an outer heading loop around the chassis's own speed control.** My node ([`heading_pid.cpp`](code/ros2_stage3_logger/src/heading_pid.cpp)) locks the starting heading as its target, drives forward, and corrects with a turning command. It uses Kp = 1.5, Kd = 0.2 and Ki = 0, running at 50 Hz. Setting Kp to 0 gives the baseline with no heading correction. I call those runs "open loop", but strictly the derivative gain stayed at 0.2. Refitting the logged commands gives Kp = 0.00, Kd = 0.20 for the two baseline runs and Kp = 1.50, Kd = 0.20 for the closed-loop run, so the controller ran exactly as described. The derivative term reacts to how fast the heading is changing, not to how far it has drifted, so it cannot hold a heading, but it is not zero either. The baselines are "no correction", not strictly "no feedback".
 
@@ -245,7 +255,7 @@ So I built what the sensing allowed: **an outer heading loop around the chassis'
 
 <img src="media/photos/stage5_paper_strip_setup.jpg" alt="The right-hand wheels on a strip of paper, with small metal weights on the paper" width="520">
 
-*The right-hand wheels on the paper strip, with small metal weights on the paper.*
+*The right-hand wheels on the paper strip, with small metal weights on the paper. Most of the photos in this repo were taken at a technology testing office where I had more open floor; see [`media/README.md`](media/README.md).*
 
 <img src="media/photos/stage5_track_overview.jpg" alt="The paper strip seen from the side, with black tape marks along it" width="520">
 
