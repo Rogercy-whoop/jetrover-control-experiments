@@ -22,8 +22,8 @@ So I bought a robot with my own savings: a Hiwonder JetRover with a Mecanum-whee
 |---|---|---|
 | A. ESP32 bench | How does a PID loop actually behave, before I trust one on real hardware? | No perfect gains, only trade-offs. Integral windup was real and a clamp fixed it. |
 | 1–2. Setup and mapping | What is actually inside this robot, and how do I talk to it? | A confirmed hardware map, and one of my own assumptions corrected. |
-| 3. Step response vs load | Can I predict how the arm's built-in controller reacts to a heavier load? | **Overshoot grew with load (6.0° → 8.4° → 10.6°), exactly as I predicted from gravity.** |
-| 4a. Heating under load | Can heat give me an independent check on the load the servo is carrying? | 400 g heated the shoulder about 2.7× faster than no load. |
+| 3. Step response vs load | Can I predict how the arm's built-in controller reacts to a heavier load? | **Overshoot grew with load (6.0° → 8.4° → 10.6°), as I predicted from gravity.** |
+| 4a. Heating under load | Can heat give me an independent check on the load the servo is carrying? | Over 180 s, 400 g warmed the shoulder about 2.7× as much as no load (trend only). |
 | 4b. Maximum acceleration | Does the base joint reach the acceleration I calculated by hand? | **No. It reached about half of it or less, and the arm hit a speed ceiling (most likely in the firmware) that no command could push past.** |
 | 5. Heading under a friction disturbance | Can my own controller keep the whole robot straight when one side slips? | **Closed loop cut RMS heading error to about a quarter of the no-correction run on the same surface (one run each).** Then I found where it stops working. |
 
@@ -32,7 +32,7 @@ So I bought a robot with my own savings: a Hiwonder JetRover with a Mecanum-whee
 - **Prediction before measurement.** For every main experiment I wrote down what I expected and why before I ran it. When the result disagreed, the disagreement was the interesting part.
 - **Raw data kept.** Every Part B plot comes from the CSV logs in [`data/`](data/), and every number in the result tables was recomputed from those files (the method is in [`data/README.md`](data/README.md)). Nothing is hand-copied. The Part A figures are screenshots of the Arduino Serial Plotter.
 - **Honest limits.** Each section ends with what the experiment cannot tell me.
-- **Help I used.** I used AI assistants (ChatGPT and Claude) along the way: as a tutor for concepts I had not met yet, and to help write and debug parts of the code, including some of the control and logging code. I ran and tested everything on the hardware myself. Choosing each experiment, the hardware work, the predictions, every measurement and the conclusions are mine.
+- **Help I used.** I used AI assistants (ChatGPT and Claude) along the way: as a tutor for concepts I had not met yet, and to help write and debug parts of the code, including some of the control and logging code, and to help draft and edit this write-up. I ran and tested everything on the hardware myself. Choosing each experiment, the hardware work, the predictions, every measurement and the conclusions are mine.
 
 ---
 
@@ -66,6 +66,10 @@ I wrote a PID controller from scratch on the ESP32 and pointed it at a **simulat
 ![Windup at Ki = 0.02](figures/a2_pid_ki002_windup.png)
 ![Steady-state error at Ki = 0.005](figures/a2_pid_ki0005_steady_state_error.png)
 ![Final version with anti-windup](figures/a2_pid_antiwindup_final.png)
+
+The final code as it appeared in the Arduino IDE (the comments are my own notes, partly in Chinese):
+
+![Final PID code in the Arduino IDE](figures/a2_pid_final_code.png)
 
 **What I took from it:** there is no perfect set of gains, only trade-offs. More integral kills steady-state error but invites windup. Less integral is calm but never quite arrives.
 
@@ -156,14 +160,14 @@ For scale, the load's gravity torque at 20.5 cm is at most about 0.40 N·m for 2
 
 Rise time is the first 20 ms sample past −54°, counted from the moment the step was commanded (the servo itself starts moving about 40 ms later). Overshoot is the largest excursion past −60°. Final angle is the last sample of the 6 s log.
 
-**What I concluded.** All three trends are monotonic and all three have a physical reason:
+**What I concluded.** All three trends are monotonic, and each has a physical explanation that I believe, although I did not test the mechanisms separately:
 1. **Rise time grows with load.** More inertia means slower acceleration.
 2. **Overshoot grows with load.** This is the counter-intuitive one, and it matched my prediction. Gravity changes sign as the load passes over the vertical, so the heavier load pushes harder at exactly the moment the servo is trying to stop.
 3. **Steady-state error grows with load.** At the final pose, gravity keeps pulling the arm down. The servo's internal controller has finite stiffness, so it settles a little past the target, and further for heavier loads.
 
 This was my favourite moment of the project: a behaviour I had first seen as a number on a simulated plant showed up in a real industrial-style servo, and I had predicted it from mechanics before measuring it.
 
-> 🎥 **[Add video link]** 0 g vs 400 g step, ideally in slow motion.
+🎥 **Videos of the step:** [0 g](https://www.youtube.com/shorts/E7fmbuiyfhM) · [200 g](https://www.youtube.com/shorts/IC3gfrWRf70) · [400 g](https://www.youtube.com/shorts/zBDd8rc5fIA)
 
 **Limits.** I could not see the servo's internal gains, so I can explain the trends but not model them exactly. I ran each load about three times, but the data folder holds one logged run per load (the one plotted here), so the numbers are single-run values and I have no spread to quote. The rise-time difference between 0 g and 200 g is a single 20 ms sample, so only the 400 g step is clearly slower. The overshoot and steady-state trends are clearer. Adding every repeat to the data folder is on my list.
 
@@ -210,7 +214,7 @@ A first draft of each part's mass and its distance from the joint it loads. The 
 - Base servo stall torque: 20 kg·cm = 1.96 N·m. I used 70% of that, 1.37 N·m, as the usable figure.
 - **Prediction: α_max = τ / I ≈ 1.37 / 0.0235 ≈ 58 rad/s².** Using the full stall torque instead gives about 83 rad/s².
 
-**Method.** I commanded the base to turn from its starting position (servo position about 502) to position 1250, which is +180°. That target is beyond the end of the servo's 0–1000 range, so every run ends when the arm reaches the end of its range, after about 120° of travel. I kept shortening the commanded move time, from 0.5 s down to 0.05 s (five runs: 0.5, 0.3, 0.2, 0.15 and 0.05 s), which demands a steeper and steeper acceleration. The idea was that once I demand more than α_max, the real motion can no longer keep up, and the point where it falls behind tells me the true limit.
+**Method.** I commanded the base to turn from its starting position (servo position about 502) to position 1250, which is +180°. That target is beyond the end of the servo's 0–1000 range, so every run ends when the arm reaches the end of its range, after about 120° of travel. I kept shortening the commanded move time, from 0.5 s down to 0.05 s (five runs: 0.5, 0.3, 0.2, 0.15 and 0.05 s), which demands a steeper and steeper acceleration. The idea was that once I demand more than α_max, the real motion can no longer keep up, and the point where it falls behind tells me the true limit. (As it turned out, even my slowest command was already past the limit, so I found a ceiling rather than a crossover point.)
 
 **Result.**
 
@@ -233,7 +237,7 @@ The lesson I keep coming back to: **a spec-sheet number describes one specific s
 - **No unsaturated reference run.** Every command I sent was faster than the ceiling, so I measured the ceiling and the ramp up to it, not a clean torque-limited acceleration.
 - **The acceleration figure is the weakest number in this repo.** The servo reports position at about 50 Hz, so the ramp has only about six samples, and the true peak acceleration could be higher than my range. Re-deriving it from the raw CSV with a proper fit is on my list. The main conclusion does not depend on it: whatever the exact figure, the arm ran into a speed ceiling, not into my inertia estimate.
 
-> 🎥 **[Add video link]** 0.3 s and 0.05 s commands side by side, looking identical.
+🎥 **Videos of the base moving:** [0.3 s command](https://www.youtube.com/shorts/K6JqQSY4Gao) · [0.05 s command](https://www.youtube.com/shorts/XIVVKUK_bf0). The two look the same.
 
 ---
 
@@ -245,7 +249,7 @@ The lesson I keep coming back to: **a spec-sheet number describes one specific s
 
 <img src="media/photos/stage5_turning_by_hand.jpg" alt="Turning the robot by hand, seen from above" width="300">
 
-*Turning the robot by hand (a frame from a video) while watching the heading in the terminal.*
+*Turning the robot by hand while watching the heading in the terminal.*
 
 So I built what the sensing allowed: **an outer heading loop around the chassis's own speed control.** My node ([`heading_pid.cpp`](code/ros2_stage3_logger/src/heading_pid.cpp)) locks the starting heading as its target, drives forward, and corrects with a turning command. It uses Kp = 1.5, Kd = 0.2 and Ki = 0, running at 50 Hz. Setting Kp to 0 gives the baseline with no heading correction. I call those runs "open loop", but strictly the derivative gain stayed at 0.2. Refitting the logged commands gives Kp = 0.00, Kd = 0.20 for the two baseline runs and Kp = 1.50, Kd = 0.20 for the closed-loop run, so the controller ran exactly as described. The derivative term reacts to how fast the heading is changing, not to how far it has drifted, so it cannot hold a heading, but it is not zero either. The baselines are "no correction", not strictly "no feedback".
 
@@ -265,7 +269,7 @@ So I built what the sensing allowed: **an outer heading loop around the chassis'
 
 *Measuring sideways displacement with a tape measure.*
 
-> 🎥 **[Add video link]** Wheels-off-the-ground test, then the three straight-line runs.
+🎥 **Videos:** [wheels-off-the-ground test](https://www.youtube.com/shorts/4fcwoNaeBSc) · straight-line runs: [open loop on floor](https://youtu.be/Sfz2wRTUFwg), [open loop on paper](https://youtu.be/g-aV6zCmHbY), [closed loop on paper](https://youtu.be/NORTlpnlMkM)
 
 **Results.**
 
@@ -318,3 +322,7 @@ jetrover-control-experiments/
 ```
 
 **Platform:** Hiwonder JetRover (Mecanum base, six-axis bus-servo arm), ROS 2 · ESP32 Dev Module (Arduino IDE 2.3.10) · sigrok FX2 logic analyzer with PulseView.
+
+## Credits and licence
+
+The experiments, measurements and conclusions in this repository are by Yu Chen (Roger), 2026; "How I worked" above says what help I used. The code is released under the [MIT licence](LICENSE). The JetRover, its product images and its specifications belong to Hiwonder; they appear here only to document what I used.

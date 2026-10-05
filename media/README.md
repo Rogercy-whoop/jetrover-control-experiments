@@ -16,16 +16,20 @@ Most of the robot photos were taken at a technology testing office, where I had 
 | The paper strip under the right-hand wheels | [`photos/stage5_paper_strip_setup.jpg`](photos/stage5_paper_strip_setup.jpg) |
 | The paper strip seen from the side | [`photos/stage5_track_overview.jpg`](photos/stage5_track_overview.jpg) |
 | Measuring sideways displacement with a tape measure | [`photos/stage5_tape_measure_drift.jpg`](photos/stage5_tape_measure_drift.jpg) |
-| Turning the robot by hand (frame from a video) | [`photos/stage5_turning_by_hand.jpg`](photos/stage5_turning_by_hand.jpg) |
+| Turning the robot by hand | [`photos/stage5_turning_by_hand.jpg`](photos/stage5_turning_by_hand.jpg) |
 
 ## Videos
 
-Large videos are not stored in the repo. They are uploaded as unlisted links and listed here.
+The videos are hosted on YouTube.
 
-| What | Link |
+| Experiment | Video |
 |---|---|
-| Stage 3 step response, 0 g vs 400 g (slow motion if possible) | [add video link] |
-| Stage 4b base-joint runs, 0.3 s vs 0.05 s commanded | [add video link] |
-| Wheels-off-the-ground test of the heading controller | [add video link] |
-| Straight-line runs: open loop on floor, open loop on paper, closed loop on paper | [add video link] |
-| Turning the robot by hand while the heading is watched in the terminal | [add video link] |
+| Stage 3, 0 g step | [watch](https://www.youtube.com/shorts/E7fmbuiyfhM) |
+| Stage 3, 200 g step | [watch](https://www.youtube.com/shorts/IC3gfrWRf70) |
+| Stage 3, 400 g step | [watch](https://www.youtube.com/shorts/zBDd8rc5fIA) |
+| Stage 4b, 0.3 s command | [watch](https://www.youtube.com/shorts/K6JqQSY4Gao) |
+| Stage 4b, 0.05 s command | [watch](https://www.youtube.com/shorts/XIVVKUK_bf0) |
+| Stage 5, wheels-off-the-ground test | [watch](https://www.youtube.com/shorts/4fcwoNaeBSc) |
+| Stage 5, straight run: open loop on floor | [watch](https://youtu.be/Sfz2wRTUFwg) |
+| Stage 5, straight run: open loop on paper | [watch](https://youtu.be/g-aV6zCmHbY) |
+| Stage 5, straight run: closed loop on paper | [watch](https://youtu.be/NORTlpnlMkM) |
